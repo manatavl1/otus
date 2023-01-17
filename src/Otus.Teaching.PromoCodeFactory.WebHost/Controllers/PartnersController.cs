@@ -18,7 +18,7 @@ namespace Otus.Teaching.PromoCodeFactory.WebHost.Controllers
         : ControllerBase
     {
         private readonly IRepository<Partner> _partnersRepository;
-       
+
         public PartnersController(IRepository<Partner> partnersRepository)
         {
             _partnersRepository = partnersRepository;
@@ -80,15 +80,11 @@ namespace Otus.Teaching.PromoCodeFactory.WebHost.Controllers
             var partner = await _partnersRepository.GetByIdAsync(id);
 
             if (partner == null)
-            {
-                throw new ArgumentException("Нет данных", "404");
-            }
-
+                return NotFound();
+            
             //Если партнер заблокирован, то нужно выдать исключение
             if (!partner.IsActive)
-            {
-                throw new ArgumentException("Данный партнер не активен", "400");
-            }
+                return BadRequest("Данный партнер не активен");
             
             //Установка лимита партнеру
             var activeLimit = partner.PartnerLimits.FirstOrDefault(x => 
@@ -129,27 +125,25 @@ namespace Otus.Teaching.PromoCodeFactory.WebHost.Controllers
         {
             var partner = await _partnersRepository.GetByIdAsync(id);
             
-                if (partner == null)
-                {
-                    return NotFound(); 
-                }
-        
-            if (!partner.IsActive) // партнер заблокирован
-                return BadRequest("Данный партнер не активен"); 
+            if (partner == null)
+                return NotFound();
+            
+            //Если партнер заблокирован, то нужно выдать исключение
+            if (!partner.IsActive)
+                return BadRequest("Данный партнер не активен");
             
             //Отключение лимита
-            var activeLimit = partner.PartnerLimits?.FirstOrDefault(x =>
-                    !x.CancelDate.HasValue);
-
-                if (activeLimit != null)
-                {
-                    activeLimit.CancelDate = DateTime.Now;
-                }
+            var activeLimit = partner.PartnerLimits.FirstOrDefault(x => 
+                !x.CancelDate.HasValue);
             
+            if (activeLimit != null)
+            {
+                activeLimit.CancelDate = DateTime.Now;
+            }
+
             await _partnersRepository.UpdateAsync(partner);
 
             return NoContent();
- 
         }
     }
 }
